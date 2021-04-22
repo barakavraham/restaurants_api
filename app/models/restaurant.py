@@ -7,11 +7,10 @@ class Restaurant(db.Model):
     __tablename__ = 'restaurants'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(20), unique=True, nullable=False)
-    address = db.Column(db.String(100), unique=False, nullable=False)
-    deleted = db.Column(db.Boolean, unique=False, nullable=False, default=False)
-    dish = db.relationship('RestaurantDish', backref=backref('restaurant', uselist=False))
-    order = db.relationship('Order', backref=backref('restaurant', uselist=False))
+    name = db.Column(db.String(20), unique=False, nullable=False)
+    address = db.Column(db.String(50), unique=False, nullable=False)
+    dish = db.relationship('RestaurantDish', cascade="all, delete-orphan", backref=backref('restaurant', uselist=False))
+    order = db.relationship('Order', cascade="all, delete-orphan", backref=backref('restaurant', uselist=False))
 
     def get_dict(self):
         return {'id': self.id, 'name': self.name, 'address': self.address}
@@ -28,7 +27,12 @@ class RestaurantDish(db.Model):
     order_dish = db.relationship('OrderDish', backref=backref('restaurant_dish', uselist=False))
 
     def get_dict(self):
-        return {'id': self.id, 'name': self.name, 'price': self.price, 'restaurant': self.restaurant.name}
+        return {
+            'id': self.id,
+            'name': self.name,
+            'price': self.price,
+            'restaurant': self.restaurant.name
+        }
 
 
 class Order(db.Model):

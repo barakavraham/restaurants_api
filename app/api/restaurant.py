@@ -1,7 +1,10 @@
+import json
 from app import db
 from app.api import base_api, SubpathApi
 from app.models.restaurant import Restaurant, RestaurantDish, OrderDish, Order
-from flask import jsonify
+from app.models.validations.restaurant import RestaurantSchema, RestaurantDishSchema
+from app.utils.restaurant import fill_database_dishes, fill_database_resturants
+from flask import jsonify, make_response
 from flask_restful import Resource, reqparse
 
 
@@ -10,28 +13,32 @@ subpath_api = SubpathApi(base_api, '/restaurant', 'restaurant')
 class RestaurantApi(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('restaurant_name', type=str, required=True)
-        self.reqparse.add_argument('restaurant_address', type=str, required=True)
+        self.reqparse.add_argument('name', type=str, required=True)
+        self.reqparse.add_argument('address', type=str, required=True)
         super(RestaurantApi, self).__init__()
-
 
     def post(self):
         args = self.reqparse.parse_args()
-        restaurant_name = args['restaurant_name']
-        restaurant_address = args['restaurant_address']
+        schema = RestaurantSchema()
+        restaurant_name = args['name']
+        restaurant_address = args['address']
+        try:
+            schema.load(args)
+        except Exception as err:
+            return make_response(jsonify(err.messages), 400)
         new_restaurant = Restaurant(name=restaurant_name, address=restaurant_address)
         db.session.add(new_restaurant)
         db.session.commit()
-
         return {
-            'restaurant_name': restaurant_name,
-            'restaurant_address': restaurant_address,
+            'restaurant_id': new_restaurant.id,
+            'restaurant_name': new_restaurant.name,
+            'restaurant_address': new_restaurant.address,
             'success': True
         }, 201
-    
+
     @staticmethod
     def get():
-        restaurants = [restaurant.get_dict() for restaurant in Restaurant.query.filter_by(deleted=False).all()]
+        restaurants = [restaurant.get_dict() for restaurant in Restaurant.query.all()]
         return jsonify(restaurants)
 
 base_api.add_resource(RestaurantApi, '/restaurants', endpoint='restaurants')
@@ -40,14 +47,9 @@ base_api.add_resource(RestaurantApi, '/restaurants', endpoint='restaurants')
 class RestaurantInfoApi(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('restaurant_name', type=str, required=False)
-        self.reqparse.add_argument('restaurant_address', type=str, required=False)
+        self.reqparse.add_argument('name', type=str, required=True)
+        self.reqparse.add_argument('address', type=str, required=True)
         super(RestaurantInfoApi, self).__init__()
-
-    def soft_delete(self, dishes):
-        for dish in dishes:
-            dish.deleted = True
-        db.session.commit()
 
     @staticmethod
     def get(restaurant_id):
@@ -56,26 +58,22 @@ class RestaurantInfoApi(Resource):
 
     def delete(self, restaurant_id):
         restaurant = Restaurant.query.get_or_404(restaurant_id)
-        if restaurant.deleted:
-            return {"message": "The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again."}, 404
-        self.soft_delete(restaurant.dish) #Soft delete restaurant dishes to keep their data.
-        restaurant.deleted = True #Soft delete restaurant to keep their data.
+        db.session.delete(restaurant)
         db.session.commit()
-        return {'deleted': True}, 200
+        return 'Restaurant deleted.', 200
 
     def patch(self, restaurant_id):
-        args = self.reqparse.parse_args()
         restaurant = Restaurant.query.get_or_404(restaurant_id)
-
-        if args['restaurant_name'] or args['restaurant_address']:
-            if args['restaurant_name']:
-                restaurant.name = args['restaurant_name']
-            if args['restaurant_address']:
-                restaurant.address = args['restaurant_address']
-            db.session.commit()
-            return restaurant.get_dict(), 200
-        else:
-            return 'You must send a new info in order to update the restaurant!', 400
+        args = self.reqparse.parse_args()
+        schema = RestaurantSchema()
+        try:
+            schema.load(args)
+        except Exception as err:
+            return make_response(jsonify(err.messages), 400)
+        restaurant.name = args['name']
+        restaurant.address = args['address']
+        db.session.commit()
+        return restaurant.get_dict(), 200
 
 subpath_api.add_resource(RestaurantInfoApi, '/<int:restaurant_id>', endpoint='<int:restaurant_id>')
 
@@ -84,7 +82,7 @@ class RestaurantDishApi(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('name', type=str, required=True)
-        self.reqparse.add_argument('price', type=str, required=True)
+        self.reqparse.add_argument('price', type=int, required=True)
         super(RestaurantDishApi, self).__init__()
 
     @staticmethod
@@ -94,14 +92,17 @@ class RestaurantDishApi(Resource):
         return jsonify(dishes)
 
     def post(self, restaurant_id):
+        restaurant = Restaurant.query.get_or_404(restaurant_id)
         args = self.reqparse.parse_args()
-        Restaurant.query.get_or_404(restaurant_id)
-
+        schema = RestaurantDishSchema()
+        try:
+            schema.load(args)
+        except Exception as err:
+            return make_response(jsonify(err.messages), 400)
         new_dish = RestaurantDish(restaurant_id=restaurant_id, name=args['name'], price=args['price'])
         db.session.add(new_dish)
         db.session.commit()
-
-        return {}, 200
+        return new_dish.get_dict(), 201
 
 subpath_api.add_resource(RestaurantDishApi, '/<int:restaurant_id>/menu', endpoint='menu')
 
@@ -109,14 +110,19 @@ subpath_api.add_resource(RestaurantDishApi, '/<int:restaurant_id>/menu', endpoin
 class RestaurantDishInfoApi(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('name', type=str, required=False)
-        self.reqparse.add_argument('price', type=str, required=False)
+        self.reqparse.add_argument('name', type=str, required=True)
+        self.reqparse.add_argument('price', type=int, required=True)
         super(RestaurantDishInfoApi, self).__init__()
     
     @staticmethod
     def find_dish(restaurant_id, dish_id):
         dish = RestaurantDish.query.filter_by(restaurant_id=restaurant_id).filter_by(id=dish_id).filter_by(deleted=False).first()
-        return dish      
+        return dish
+
+    def update_order_dishes(self, dish, new_dish_id):
+        for order_dish in dish.order_dish:
+            order_dish.restaurant_dish_id = new_dish_id
+        db.session.commit()
 
     def get(self, restaurant_id, dish_id):
         dish = self.find_dish(restaurant_id, dish_id)
@@ -137,20 +143,21 @@ class RestaurantDishInfoApi(Resource):
         dish = self.find_dish(restaurant_id, dish_id)
         if not dish:
             return 'The restaurant id or the dish id that you entered is not found!'
-        
-        dish_copy = RestaurantDish(name=dish.name, restaurant_id=dish.restaurant_id, price=dish.price)
+        schema = RestaurantDishSchema()
 
-        if args['name'] or args['price']:
-            if args['name']:
-                dish_copy.name = args['name']
-            if args['price']:
-                dish_copy.price = args['price']
-            dish.deleted = True #Soft delete to keep the dish data.
-            db.session.add(dish_copy)
-            db.session.commit()
-            return dish_copy.get_dict(), 200
-        else:
-            return 'You must enter new values to update a dish'
+        try:
+            schema.load(args)
+        except Exception as err:
+            return make_response(jsonify(err.messages), 400)
+
+        dish_copy = RestaurantDish(name=dish.name, restaurant_id=dish.restaurant_id, price=dish.price, deleted=True)
+        db.session.add(dish_copy)
+        db.session.commit()
+        self.update_order_dishes(dish, dish_copy.id)
+        dish.name = args['name']
+        dish.price = args['price']
+        db.session.commit()
+        return dish.get_dict(), 200
 
 subpath_api.add_resource(RestaurantDishInfoApi, '/<int:restaurant_id>/menu/<int:dish_id>', endpoint='<int:dish_id>')
 
@@ -175,20 +182,19 @@ class OrdersApi(Resource):
     def post(self, restaurant_id):
         args = self.reqparse.parse_args()
         if not args['dishes_id']:
-            return 'You must enter at least 1 dish to send an order!'
+            return 'You must enter at least 1 dish to send an order!', 404
         if not all(self.find_dish(restaurant_id, dish_id) for dish_id in args['dishes_id']):
-            return 'You must enter only dishes that the restaurant sells!'
+            return 'You must enter only dishes that the restaurant sells!', 404
         new_order = Order(restaurant_id=restaurant_id)
         db.session.add(new_order)
         db.session.commit()
-        print(restaurant_id)
         for dish_id in args['dishes_id']:
             dish = self.find_dish(restaurant_id, dish_id)
             if dish:
                 order_dish = OrderDish(order_id=new_order.id, restaurant_dish_id=dish.id, price=dish.price)
                 db.session.add(order_dish)
         db.session.commit()
-        return 'Ordered'
+        return new_order.get_dict(), 200
 
 
 subpath_api.add_resource(OrdersApi, '/<int:restaurant_id>/orders', endpoint='orders')

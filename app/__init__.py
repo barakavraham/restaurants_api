@@ -1,33 +1,33 @@
 import os
+from .config import config
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_marshmallow import Marshmallow
 
 
 load_dotenv()
-
 db = SQLAlchemy()
+ma = Marshmallow()
 
-def create_app():
+def create_app(config_name='development'):
     app = Flask(__name__)
+    app.config.from_object(config[config_name])
 
-    # Set appliction config
-    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or 'sqlite:///rest.db'
-    SQLALCHEMY_TRACK_MODIFICATIONS = os.environ.get('SQLALCHEMY_TRACK_MODIFICATIONS')
-
-    app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
-    app.config['JSON_SORT_KEYS'] = False #Prevents sorting after using jsonify 
     db.init_app(app)
+    ma.init_app(app)
 
-    # Import Blueprint and Models
+    #Import blueprint and models
     from app.api import api_blueprint
     from app.models import restaurant
 
     app.register_blueprint(api_blueprint, url_prefix='/api')
 
-    # Creates database and tables if they not exist
+    from .utils.restaurant import fill_database_resturants, fill_database_dishes
+
     with app.app_context():
         db.create_all()
+        fill_database_resturants()
+        fill_database_dishes()
 
     return app
