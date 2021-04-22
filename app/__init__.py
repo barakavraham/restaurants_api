@@ -1,5 +1,5 @@
 import os
-from .config import config
+from config import config
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
