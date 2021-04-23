@@ -8,13 +8,8 @@ def fill_database_resturants():
         return
     for restaurant in restaurants:
         new_restaurant = Restaurant(name=restaurant['name'], address=restaurant['address'])
-        db.session.add(new_restaurant)  
-    db.session.commit()
-
-def fill_database_dishes():
-    if Restaurant.query.all():
-        return
+        db.session.add(new_restaurant)
     for dish in restaurant_dishes:
-        new_dish = RestaurantDish(name=dish['name'], price=dish["price"])
+        new_dish = RestaurantDish(name=dish['name'], price=dish['price'], restaurant_id=dish['restaurant_id'])
         db.session.add(new_dish)
     db.session.commit()

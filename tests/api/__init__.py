@@ -2,7 +2,7 @@ import os
 import pytest
 from app import create_app, db
 from app.utils.db import create_tables
-from app.utils.restaurant import fill_database_resturants, fill_database_dishes
+from app.utils.restaurant import fill_database_resturants
 from unittest import TestCase
 
 

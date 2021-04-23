@@ -24,7 +24,7 @@ class RestaurantDish(db.Model):
     name = db.Column(db.String(20), unique=False, nullable=False)
     price = db.Column(db.Integer, unique=False, nullable=False)
     deleted = db.Column(db.Boolean, unique=False, nullable=False, default=False)
-    order_dish = db.relationship('OrderDish', backref=backref('restaurant_dish', uselist=False))
+    order_dish = db.relationship('OrderDish', cascade="all, delete-orphan", backref=backref('restaurant_dish', uselist=False))
 
     def get_dict(self):
         return {
@@ -41,8 +41,8 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurants.id'))
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    order_dish = db.relationship('OrderDish', backref=backref('order', uselist=False))
 
+    order_dish = db.relationship('OrderDish', backref=backref('order', uselist=False))
     def get_dict(self):
         return {
             'order_id': self.id,

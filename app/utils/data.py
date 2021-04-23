@@ -1,3 +1,6 @@
+# Database data to use for testing and developing mode.
+# ** Any changes might cause the tests to fail **
+
 restaurants = [
     {
         'name': 'BurgerShop',

@@ -2,3 +2,5 @@
 *.pyo
 .env
 */app.db
+*.coverage
+htmlcov
