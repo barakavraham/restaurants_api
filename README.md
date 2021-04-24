@@ -6,7 +6,7 @@
 Restaurants api is a system that offering restaurant ordering service,
 By using the api you can manage the restaurants, the restaurant dishes and the restaurant orders.
 
-## List of the apis :
+## List of apis :
 **/restaurants**
 
 -   POST - Add a new restaurant
