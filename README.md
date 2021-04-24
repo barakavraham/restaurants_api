@@ -34,5 +34,5 @@ By using the api you can manage the restaurants, the restaurant dishes and the r
 -   GET - Get orders list and their products
 -   POST - Create a new order by passing list menu items' id
 
-## Tests
+## For tests
 >pytest tests/api/restaurant
