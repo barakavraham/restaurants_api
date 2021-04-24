@@ -11,7 +11,7 @@ class DevConfig:
     SQLALCHEMY_DATABASE_URI = (os.environ.get('SQLALCHEMY_DATABASE_URI')
                                or 'sqlite:///' + os.path.join(basedir, 'app.db'))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JSON_SORT_KEYS=False
+    JSON_SORT_KEYS = False
 
 
 class TestingConfig:
@@ -19,7 +19,7 @@ class TestingConfig:
     SQLALCHEMY_DATABASE_FILE = os.path.join(basedir, 'app.db')
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + SQLALCHEMY_DATABASE_FILE
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JSON_SORT_KEYS=False
+    JSON_SORT_KEYS = False
 
 
 config = {

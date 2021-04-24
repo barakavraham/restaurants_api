@@ -1,4 +1,3 @@
-import json
 from app import db
 from app.api import base_api, SubpathApi
 from app.models.restaurant import Restaurant, RestaurantDish, OrderDish, Order
@@ -19,13 +18,10 @@ class RestaurantApi(Resource):
     def post(self):
         args = self.reqparse.parse_args()
         schema = RestaurantSchema()
-        try:
-            schema.load(args)
-        except Exception as err:
-            return make_response(jsonify(err.messages), 400)
-        restaurant_name = args['name']
-        restaurant_address = args['address']
-        new_restaurant = Restaurant(name=restaurant_name, address=restaurant_address)
+        validate = schema.validate(args)
+        if validate:
+            return make_response(jsonify(validate), 400)
+        new_restaurant = Restaurant(name=args['name'], address=args['address'])
         db.session.add(new_restaurant)
         db.session.commit()
         return new_restaurant.get_dict(), 201
@@ -35,8 +31,8 @@ class RestaurantApi(Resource):
         restaurants = [restaurant.get_dict() for restaurant in Restaurant.query.all()]
         return jsonify(restaurants)
 
-base_api.add_resource(RestaurantApi, '/restaurants', endpoint='restaurants')
 
+base_api.add_resource(RestaurantApi, '/restaurants', endpoint='restaurants')
 
 class RestaurantInfoApi(Resource):
     def __init__(self):
@@ -53,7 +49,7 @@ class RestaurantInfoApi(Resource):
     @staticmethod
     def delete(restaurant_id):
         restaurant = Restaurant.query.get_or_404(restaurant_id)
-        results = {**restaurant.get_dict(), 'msg': 'The restaurant have been deleted.'}
+        results = {**restaurant.get_dict(), 'msg': 'The restaurant has been deleted.'}
         db.session.delete(restaurant)
         db.session.commit()
         return results, 200
@@ -62,23 +58,22 @@ class RestaurantInfoApi(Resource):
         restaurant = Restaurant.query.get_or_404(restaurant_id)
         args = self.reqparse.parse_args()
         schema = RestaurantSchema()
-        try:
-            schema.load(args)
-        except Exception as err:
-            return make_response(jsonify(err.messages), 400)
+        validate = schema.validate(args)
+        if validate:
+            return make_response(jsonify(validate), 400)
         restaurant.name = args['name']
         restaurant.address = args['address']
         db.session.commit()
-        return {**restaurant.get_dict(), 'msg': 'The dish have been patched'}, 200
+        return {**restaurant.get_dict(), 'msg': 'The dish has been patched'}, 200
+
 
 subpath_api.add_resource(RestaurantInfoApi, '/<int:restaurant_id>', endpoint='<int:restaurant_id>')
-
 
 class RestaurantDishApi(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('name', type=str, required=True)
-        self.reqparse.add_argument('price', type=int, required=True)
+        self.reqparse.add_argument('price', type=float, required=True)
         super(RestaurantDishApi, self).__init__()
 
     @staticmethod
@@ -88,35 +83,35 @@ class RestaurantDishApi(Resource):
         return jsonify(dishes)
 
     def post(self, restaurant_id):
-        restaurant = Restaurant.query.get_or_404(restaurant_id)
+        Restaurant.query.get_or_404(restaurant_id)
         args = self.reqparse.parse_args()
         schema = RestaurantDishSchema()
-        try:
-            schema.load(args)
-        except Exception as err:
-            return make_response(jsonify(err.messages), 400)
+        validate = schema.validate(args)
+        if validate:
+            return make_response(jsonify(validate), 400)
         new_dish = RestaurantDish(restaurant_id=restaurant_id, name=args['name'], price=args['price'])
         db.session.add(new_dish)
         db.session.commit()
         return new_dish.get_dict(), 201
 
-subpath_api.add_resource(RestaurantDishApi, '/<int:restaurant_id>/menu', endpoint='menu')
 
+subpath_api.add_resource(RestaurantDishApi, '/<int:restaurant_id>/menu', endpoint='menu')
 
 class RestaurantDishInfoApi(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('name', type=str, required=True)
-        self.reqparse.add_argument('price', type=int, required=True)
+        self.reqparse.add_argument('price', type=float, required=True)
         super(RestaurantDishInfoApi, self).__init__()
 
     @staticmethod
     def find_dish(restaurant_id, dish_id):
         restaurant = Restaurant.query.get(restaurant_id)
         if not restaurant:
-            return {'dish': None, 'err': 'restaurant not found'}
-        dish = RestaurantDish.query.filter_by(restaurant_id=restaurant_id).filter_by(id=dish_id).filter_by(deleted=False).first()
-        return {'dish': dish, 'err': ''} if dish else {'dish': None, 'err': 'dish not found in the restaurant menu'}
+            return {'dish': None, 'err': 'Restaurant not found'}
+        dish = RestaurantDish.query.filter_by(restaurant_id=restaurant_id).\
+            filter_by(id=dish_id).filter_by(deleted=False).first()
+        return {'dish': dish, 'err': ''} if dish else {'dish': None, 'err': 'Dish not found in the restaurant menu'}
 
     @staticmethod
     def update_order_dishes(dish, new_dish_id):
@@ -134,19 +129,18 @@ class RestaurantDishInfoApi(Resource):
             return results['err'], 404
         results['dish'].deleted = True
         db.session.commit()
-        return {**results['dish'].get_dict(), 'msg': 'The dish have been deleted'}, 200
+        return {**results['dish'].get_dict(), 'msg': 'The dish has been deleted'}, 200
 
     def patch(self, restaurant_id, dish_id):
-        args = self.reqparse.parse_args()  
+        args = self.reqparse.parse_args()
         results = self.find_dish(restaurant_id, dish_id)
         if not results['dish']:
             return results['err'], 404
 
         schema = RestaurantDishSchema()
-        try:
-            schema.load(args)
-        except Exception as err:
-            return make_response(jsonify(err.messages), 400)
+        validate = schema.validate(args)
+        if validate:
+            return make_response(jsonify(validate), 400)
         dish = results['dish']
         dish_copy = RestaurantDish(name=dish.name, restaurant_id=dish.restaurant_id, price=dish.price, deleted=True)
         db.session.add(dish_copy)
@@ -155,10 +149,10 @@ class RestaurantDishInfoApi(Resource):
         dish.name = args['name']
         dish.price = args['price']
         db.session.commit()
-        return {**dish.get_dict(), 'msg': 'The dish have been pached'}, 200
+        return {**dish.get_dict(), 'msg': 'The dish has been patched'}, 200
+
 
 subpath_api.add_resource(RestaurantDishInfoApi, '/<int:restaurant_id>/menu/<int:dish_id>', endpoint='<int:dish_id>')
-
 
 class OrderApi(Resource):
     def __init__(self):
@@ -168,7 +162,8 @@ class OrderApi(Resource):
 
     @staticmethod
     def find_dish(restaurant_id, dish_id):
-        dish = RestaurantDish.query.filter_by(restaurant_id=restaurant_id).filter_by(id=dish_id).filter_by(deleted=False).first()
+        dish = RestaurantDish.query.filter_by(restaurant_id=restaurant_id).\
+            filter_by(id=dish_id).filter_by(deleted=False).first()
         return dish
 
     @staticmethod
@@ -189,7 +184,9 @@ class OrderApi(Resource):
         db.session.add(new_order)
         db.session.commit()
         for dish in order_dishes:
-            order_dish = OrderDish(order_id=new_order.id, restaurant_dish_id=dish.id, price=dish.price)
+            order_dish = OrderDish(order_id=new_order.id,
+                                   restaurant_dish_id=dish.id,
+                                   price=dish.price)
             db.session.add(order_dish)
         db.session.commit()
         return new_order.get_dict(), 200

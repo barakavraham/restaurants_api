@@ -1,4 +1,4 @@
-# Database data to use for testing and developing mode.
+# data to use for testing and developing.
 # ** Any changes might cause the tests to fail **
 
 restaurants = [
@@ -31,37 +31,30 @@ restaurants = [
 restaurant_dishes = [
     {
         'name': 'Soup',
-        'price': 10,
-        'restaurant_id': 1
+        'price': 10
     },
     {
         'name': 'Burger',
-        'price': 15,
-        'restaurant_id': 1
+        'price': 15
     },
     {
         'name': 'Omlet',
-        'price': 5,
-        'restaurant_id': 1
+        'price': 5
     },
     {
         'name': 'Bueno',
-        'price': 2,
-        'restaurant_id': 2
+        'price': 2
     },
     {
         'name': 'Pizza',
-        'price': 4,
-        'restaurant_id': 2
+        'price': 4
     },
     {
         'name': 'coffee',
-        'price': 1,
-        'restaurant_id': 2
+        'price': 1
     },
     {
         'name': 'Sushi',
-        'price': 3,
-        'restaurant_id': 2
+        'price': 3
     }
 ]
