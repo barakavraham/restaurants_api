@@ -8,12 +8,12 @@ from flask_restful import Resource, reqparse
 
 subpath_api = SubpathApi(base_api, '/restaurant', 'restaurant')
 
-class RestaurantApi(Resource):
+class RestaurantAPI(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('name', type=str, required=True)
         self.reqparse.add_argument('address', type=str, required=True)
-        super(RestaurantApi, self).__init__()
+        super(RestaurantAPI, self).__init__()
 
     def post(self):
         args = self.reqparse.parse_args()
@@ -32,14 +32,14 @@ class RestaurantApi(Resource):
         return jsonify(restaurants)
 
 
-base_api.add_resource(RestaurantApi, '/restaurants', endpoint='restaurants')
+base_api.add_resource(RestaurantAPI, '/restaurants', endpoint='restaurants')
 
-class RestaurantInfoApi(Resource):
+class RestaurantInfoAPI(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('name', type=str, required=True)
         self.reqparse.add_argument('address', type=str, required=True)
-        super(RestaurantInfoApi, self).__init__()
+        super(RestaurantInfoAPI, self).__init__()
 
     @staticmethod
     def get(restaurant_id):
@@ -67,14 +67,14 @@ class RestaurantInfoApi(Resource):
         return {**restaurant.get_dict(), 'msg': 'The dish has been patched'}, 200
 
 
-subpath_api.add_resource(RestaurantInfoApi, '/<int:restaurant_id>', endpoint='<int:restaurant_id>')
+subpath_api.add_resource(RestaurantInfoAPI, '/<int:restaurant_id>', endpoint='<int:restaurant_id>')
 
-class RestaurantDishApi(Resource):
+class RestaurantDishAPI(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('name', type=str, required=True)
         self.reqparse.add_argument('price', type=float, required=True)
-        super(RestaurantDishApi, self).__init__()
+        super(RestaurantDishAPI, self).__init__()
 
     @staticmethod
     def get(restaurant_id):
@@ -95,14 +95,14 @@ class RestaurantDishApi(Resource):
         return new_dish.get_dict(), 201
 
 
-subpath_api.add_resource(RestaurantDishApi, '/<int:restaurant_id>/menu', endpoint='menu')
+subpath_api.add_resource(RestaurantDishAPI, '/<int:restaurant_id>/menu', endpoint='menu')
 
-class RestaurantDishInfoApi(Resource):
+class RestaurantDishInfoAPI(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('name', type=str, required=True)
         self.reqparse.add_argument('price', type=float, required=True)
-        super(RestaurantDishInfoApi, self).__init__()
+        super(RestaurantDishInfoAPI, self).__init__()
 
     @staticmethod
     def find_dish(restaurant_id, dish_id):
@@ -152,13 +152,13 @@ class RestaurantDishInfoApi(Resource):
         return {**dish.get_dict(), 'msg': 'The dish has been patched'}, 200
 
 
-subpath_api.add_resource(RestaurantDishInfoApi, '/<int:restaurant_id>/menu/<int:dish_id>', endpoint='<int:dish_id>')
+subpath_api.add_resource(RestaurantDishInfoAPI, '/<int:restaurant_id>/menu/<int:dish_id>', endpoint='<int:dish_id>')
 
-class OrderApi(Resource):
+class OrderAPI(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('dishes_id', type=list, required=True, location='json')
-        super(OrderApi, self).__init__()
+        super(OrderAPI, self).__init__()
 
     @staticmethod
     def find_dish(restaurant_id, dish_id):
@@ -192,4 +192,4 @@ class OrderApi(Resource):
         return new_order.get_dict(), 200
 
 
-subpath_api.add_resource(OrderApi, '/<int:restaurant_id>/orders', endpoint='orders')
+subpath_api.add_resource(OrderAPI, '/<int:restaurant_id>/orders', endpoint='orders')
